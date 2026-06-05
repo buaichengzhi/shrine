@@ -2,39 +2,57 @@
 <html lang="zh">
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>表单数据记录</title>
     <style>
-        body { font-family: sans-serif; padding: 40px; background: #f4f4f9; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: #f4f4f9; color: #333; margin: 0; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        
+        .table-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
+        
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #6200ee; color: white; }
-        .back-btn { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #6200ee; font-weight: bold; }
+        
+        .back-btn { text-decoration: none; color: #6200ee; font-weight: bold; border: 1px solid #6200ee; padding: 8px 15px; border-radius: 5px; }
+        
+        /* 移动端调整文字大小 */
+        @media (max-width: 600px) {
+            th, td { padding: 10px; font-size: 14px; }
+        }
     </style>
 </head>
 <body>
-    <a href="index.html" class="back-btn">← 返回生成器</a>
-    <h1>当前表单所有记录</h1>
-    <table id="dataTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>内容 (Content)</th>
-                <th>时间戳 (Timestamp)</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+    <div class="container">
+        <header>
+            <h1>记录存档</h1>
+            <a href="index.html" class="back-btn">← 返回</a>
+        </header>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>内容 (Content)</th>
+                        <th>时间 (Time)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
 
     <script>
         const data = JSON.parse(localStorage.getItem('formData') || "[]");
         const tableBody = document.getElementById('tableBody');
 
-        data.forEach(item => {
+        // 按时间倒序显示最新数据
+        data.reverse().forEach(item => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${item.id}</td>
-                <td>${item.content}</td>
-                <td>${item.timestamp}</td>
+                <td><strong>${item.content}</strong></td>
+                <td style="color: #666; font-size: 0.9em;">${item.timestamp}</td>
             `;
             tableBody.appendChild(row);
         });
