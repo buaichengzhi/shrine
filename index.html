@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8" />
+    <title>表单数据记录</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; background: #f4f4f9; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #6200ee; color: white; }
+        .back-btn { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #6200ee; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← 返回生成器</a>
+    <h1>当前表单所有记录</h1>
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>内容 (Content)</th>
+                <th>时间戳 (Timestamp)</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+        const data = JSON.parse(localStorage.getItem('formData') || "[]");
+        const tableBody = document.getElementById('tableBody');
+
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.id}</td>
+                <td>${item.content}</td>
+                <td>${item.timestamp}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    </script>
+</body>
+</html>
