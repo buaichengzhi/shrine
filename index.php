@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        #ui-layer {
+            position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 500px; text-align: center; color: white; z-index: 10;
+        }
+        .input-group { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        input {
+            padding: 12px; width: 100%; border-radius: 25px; border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1); color: white; outline: none; text-align: center;
+        }
+        .btn-row { display: flex; gap: 10px; width: 100%; justify-content: center; }
+        button, .link-btn {
+            padding: 12px 25px; border-radius: 25px; border: none; cursor: pointer;
+            font-weight: bold; text-decoration: none; display: inline-block;
+        }
+        button { background: #6200ee; color: white; }
+        .link-btn { background: rgba(255,255,255,0.2); color: white; }
+    </style>
+</head>
+<body>
+    <div id="ui-layer">
+        <h1>你想给我什么答案？<br>What answer are you gonna give me?</h1>
+        <div class="input-group">
+            <form action="save.php" method="POST" id="dataForm" style="width:100%">
+                <input type="text" name="content" id="userInput" placeholder="输入你的答案..." required>
+                <div class="btn-row" style="margin-top:15px;">
+                    <button type="submit">提交 Submit</button>
+                    <!-- 新增 Fold 按钮 -->
+                    <a href="data.php" class="link-btn">Fold (查看数据)</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let particles = [];
+        let nodeCount = <?php 
+            // 实时获取数据库中的行数来决定粒子数量
+            $db = new PDO('sqlite:database.db');
+            $db->exec("CREATE TABLE IF NOT EXISTS answers (id INTEGER PRIMARY KEY, content TEXT, timestamp TEXT)");
+            echo $db->query("SELECT count(*) FROM answers")->fetchColumn();
+        ?>;
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            for (let i = 0; i < nodeCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function draw() {
+            background(10, 10, 25);
+            particles.forEach(p => {
+                p.update();
+                p.display();
+            });
+            // 简单连线逻辑
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    let d = dist(particles[i].pos.x, particles[i].pos.y, particles[j].pos.x, particles[j].pos.y);
+                    if (d < 100) {
+                        stroke(100, 150, 255, map(d, 0, 100, 150, 0));
+                        line(particles[i].pos.x, particles[i].pos.y, particles[j].pos.x, particles[j].pos.y);
+                    }
+                }
+            }
+        }
+
+        class Particle {
+            constructor() {
+                this.pos = createVector(random(width), random(height));
+                this.vel = createVector(random(-0.5, 0.5), random(-0.5, 0.5));
+            }
+            update() {
+                this.pos.add(this.vel);
+                if (this.pos.x < 0 || this.pos.x > width) this.vel.x *= -1;
+                if (this.pos.y < 0 || this.pos.y > height) this.vel.y *= -1;
+            }
+            display() {
+                noStroke(); fill(255, 150);
+                ellipse(this.pos.x, this.pos.y, 3);
+            }
+        }
+
+        function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+    </script>
+</body>
+</html>
