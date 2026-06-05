@@ -3,178 +3,80 @@
 <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <meta charset="utf-8" />
-    <!-- 关键：确保移动端自适应 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
         #ui-layer {
-            position: absolute;
-            top: 25%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 600px;
-            text-align: center;
-            color: white;
-            z-index: 10;
-            pointer-events: none; /* 让鼠标点击穿透到画布，除非点击到子元素 */
+            position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 500px; text-align: center; color: white; z-index: 10;
         }
-        
-        #ui-layer * { pointer-events: auto; }
-
-        h1 {
-            font-size: clamp(1.2rem, 5vw, 2.5rem); /* 根据分辨率自适应字体大小 */
-            margin-bottom: 2rem;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-        }
-
-        @media (min-width: 600px) {
-            .input-group { flex-direction: row; justify-content: center; }
-        }
-
+        .input-group { display: flex; flex-direction: column; gap: 15px; align-items: center; }
         input {
-            padding: 12px 15px;
-            width: 100%;
-            max-width: 300px;
-            border-radius: 25px;
-            border: 1px solid rgba(255,255,255,0.3);
-            background: rgba(255,255,255,0.1);
-            color: white;
-            outline: none;
-            backdrop-filter: blur(5px);
+            padding: 12px; width: 100%; border-radius: 25px; border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1); color: white; outline: none; text-align: center;
         }
-
-        button {
-            padding: 12px 25px;
-            border-radius: 25px;
-            border: none;
-            background: #6200ee;
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.2s, background 0.2s;
+        .btn-row { display: flex; gap: 10px; width: 100%; justify-content: center; }
+        button, .link-btn {
+            padding: 12px 25px; border-radius: 25px; border: none; cursor: pointer;
+            font-weight: bold; text-decoration: none; display: inline-block;
         }
-        button:hover { background: #7722ff; transform: scale(1.05); }
-
-        #more-icon {
-            position: absolute;
-            bottom: 5vh;
-            right: 5vw;
-            color: white;
-            text-decoration: none;
-            font-size: 24px;
-            z-index: 10;
-            background: rgba(255,255,255,0.1);
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
+        button { background: #6200ee; color: white; }
+        .link-btn { background: rgba(255,255,255,0.2); color: white; }
     </style>
 </head>
 <body>
     <div id="ui-layer">
         <h1>你想给我什么答案？<br>What answer are you gonna give me?</h1>
         <div class="input-group">
-            <input type="text" id="userInput" placeholder="输入你的答案...">
-            <button onclick="handleSubmit()">提交 Submit</button>
+            <form action="save.php" method="POST" id="dataForm" style="width:100%">
+                <input type="text" name="content" id="userInput" placeholder="输入你的答案..." required>
+                <div class="btn-row" style="margin-top:15px;">
+                    <button type="submit">提交 Submit</button>
+                    <!-- 新增 Fold 按钮 -->
+                    <a href="data.php" class="link-btn">Fold (查看数据)</a>
+                </div>
+            </form>
         </div>
     </div>
-    
-    <a href="data.html" id="more-icon" title="查看更多数据">📜</a>
 
     <script>
         let particles = [];
-        let nodeCount = 0;
-        let connectionDist = 150;
+        let nodeCount = <?php 
+            // 实时获取数据库中的行数来决定粒子数量
+            $db = new PDO('sqlite:database.db');
+            $db->exec("CREATE TABLE IF NOT EXISTS answers (id INTEGER PRIMARY KEY, content TEXT, timestamp TEXT)");
+            echo $db->query("SELECT count(*) FROM answers")->fetchColumn();
+        ?>;
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
-            adjustConfig(); // 根据分辨率调整粒子连线距离
-            loadDataAndInit();
+            for (let i = 0; i < nodeCount; i++) {
+                particles.push(new Particle());
+            }
         }
 
         function draw() {
-            background(10, 10, 25); 
-            
+            background(10, 10, 25);
+            particles.forEach(p => {
+                p.update();
+                p.display();
+            });
+            // 简单连线逻辑
             for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].display();
                 for (let j = i + 1; j < particles.length; j++) {
                     let d = dist(particles[i].pos.x, particles[i].pos.y, particles[j].pos.x, particles[j].pos.y);
-                    if (d < connectionDist) {
-                        stroke(100, 150, 255, map(d, 0, connectionDist, 200, 0));
-                        strokeWeight(1);
+                    if (d < 100) {
+                        stroke(100, 150, 255, map(d, 0, 100, 150, 0));
                         line(particles[i].pos.x, particles[i].pos.y, particles[j].pos.x, particles[j].pos.y);
                     }
                 }
             }
         }
 
-        function loadDataAndInit() {
-            let data = JSON.parse(localStorage.getItem('formData') || "[]");
-            nodeCount = data.length;
-            initParticles();
-        }
-
-        function handleSubmit() {
-            const inputVal = document.getElementById('userInput').value;
-            if (!inputVal.trim()) return;
-
-            let data = JSON.parse(localStorage.getItem('formData') || "[]");
-            const newEntry = {
-                id: Date.now(),
-                content: inputVal,
-                timestamp: new Date().toLocaleString()
-            };
-            data.push(newEntry);
-            localStorage.setItem('formData', JSON.stringify(data));
-
-            nodeCount = data.length;
-            initParticles();
-            document.getElementById('userInput').value = "";
-        }
-
-        function initParticles() {
-            particles = [];
-            for (let i = 0; i < nodeCount; i++) {
-                particles.push(new Particle());
-            }
-        }
-
-        function adjustConfig() {
-            // 如果是小屏幕（如手机），缩小连线距离，防止画面太乱
-            if (windowWidth < 600) {
-                connectionDist = 80;
-            } else {
-                connectionDist = 150;
-            }
-        }
-
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
-            adjustConfig();
-            // 窗口改变时重新分布粒子，防止粒子跑出屏幕
-            initParticles(); 
-        }
-
         class Particle {
             constructor() {
                 this.pos = createVector(random(width), random(height));
                 this.vel = createVector(random(-0.5, 0.5), random(-0.5, 0.5));
-                this.size = random(2, 4);
             }
             update() {
                 this.pos.add(this.vel);
@@ -182,11 +84,12 @@
                 if (this.pos.y < 0 || this.pos.y > height) this.vel.y *= -1;
             }
             display() {
-                noStroke();
-                fill(255, 220);
-                ellipse(this.pos.x, this.pos.y, this.size);
+                noStroke(); fill(255, 150);
+                ellipse(this.pos.x, this.pos.y, 3);
             }
         }
+
+        function windowResized() { resizeCanvas(windowWidth, windowHeight); }
     </script>
 </body>
 </html>
